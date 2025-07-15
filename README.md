@@ -1,152 +1,130 @@
-# Linux-Backs-up-any-encrypted-password-files-that-have-been-updated-in-the-past-24-hours.
+📂 backup.sh Script Explanation
+The backup.sh script is a Bash-based automation tool that backs up files modified in the last 24 hours. It enhances security, removes manual effort, and supports scheduling via cron. Here's a step-by-step explanation:
 
-📄 Project Title: Automated Backup Script (backup.sh)
-🧑‍💻 Author: [Souvik Mandal]
-🏢 Organization: ABC International Inc.
-📅 Project Goal:
-To automate the process of backing up encrypted password files modified in the past 24 hours, reducing human error and improving efficiency.
+🧠 Script Breakdown
+✅ Input Validation
 
-📜 Script Breakdown and Explanation
-bash
-Copy
-Edit
-#!/bin/bash
-Shebang – Specifies the interpreter to execute the script, in this case /bin/bash.
-
-bash
-Copy
-Edit
+```
 if [[ $# != 2 ]]
 then
   echo "backup.sh target_directory_name destination_directory_name"
   exit
 fi
-Task: Validate that exactly two arguments are passed to the script.
+```
+Ensures exactly two arguments are passed (target and destination directories); otherwise, it exits with an error.
 
-$# holds the number of passed arguments.
-
-If not 2, show usage instruction and exit.
-
-bash
-Copy
-Edit
+📁 Directory Verification
+```
 if [[ ! -d $1 ]] || [[ ! -d $2 ]]
 then
   echo "Invalid directory path provided"
   exit
 fi
-Task: Validate that both passed arguments are valid directories.
+```
+Checks if both arguments are valid existing directories.
 
--d checks if the path is a directory.
-
-bash
-Copy
-Edit
+🏷 Assign Variables
+```
 targetDirectory=$1
 destinationDirectory=$2
-Task 1: Assign the first and second command-line arguments to respective variables.
+```
+Stores input arguments in readable variable names.
 
-bash
-Copy
-Edit
+📢 Display Paths
+```
 echo "Target Directory: $targetDirectory"
 echo "Destination Directory: $destinationDirectory"
-Task 2: Print the provided directories for confirmation.
+```
+Prints the source and destination paths to the terminal for confirmation.
 
-bash
-Copy
-Edit
+⏱ Get Current Timestamp
+```
 currentTS=$(date +%s)
-Task 3: Capture the current timestamp (in seconds since Epoch) into currentTS.
+```
+Captures the current UNIX timestamp to uniquely name the backup file.
 
-bash
-Copy
-Edit
+💾 Set Backup Filename
+```
 backupFileName="backup-$currentTS.tar.gz"
-Task 4: Set the name of the backup file using the timestamp.
+```
+Defines the name of the backup archive using the current timestamp.
 
-bash
-Copy
-Edit
+📍 Save Original Directory
+```
 origAbsPath=$(pwd)
-Task 5: Save the absolute path of the original directory (before any cd).
+```
+Saves the current working directory path.
 
-bash
-Copy
-Edit
+🚚 Navigate to Destination Directory
+```
 cd "$destinationDirectory" || exit
 destDirAbsPath=$(pwd)
-Task 6: Change to destination directory and get its absolute path.
-|| exit ensures script exits if cd fails.
+```
+Moves to the destination directory and stores its absolute path.
 
-bash
-Copy
-Edit
+↩️ Go Back and Enter Target Directory
+```
 cd "$origAbsPath" || exit
 cd "$targetDirectory" || exit
-Task 7: Navigate to the target directory where files will be scanned.
+```
+Returns to the original directory and then navigates to the target directory.
 
-bash
-Copy
-Edit
+⏳ Calculate Timestamp for 24 Hours Ago
+```
 yesterdayTS=$((currentTS - 24 * 60 * 60))
-Task 8: Calculate the timestamp 24 hours ago for comparison.
+```
+Calculates the timestamp for files modified within the last 24 hours.
 
-bash
-Copy
-Edit
+🧮 Initialize Array
+```
 declare -a toBackup
-Initialize an array toBackup to store names of files to archive.
+```
+Declares an empty array to store the list of files to back up.
 
-bash
-Copy
-Edit
+🔍 Find Modified Files
+```
 for file in *
-Task 9: Loop through all files and directories in the current folder.
+do
+  if [[ $(date -r "$file" +%s) -gt $yesterdayTS ]]
+  then
+    toBackup+=("$file")
+  fi
+done
+```
+Loops over all files in the directory and adds the recently modified ones to the array.
 
-bash
-Copy
-Edit
-if [[ $(date -r "$file" +%s) -gt $yesterdayTS ]]
-Task 10: Check if file's last modified time is within the last 24 hours.
-
-bash
-Copy
-Edit
-toBackup+=("$file")
-Task 11: Add qualified file to the toBackup array.
-
-bash
-Copy
-Edit
+📦 Create Backup Archive
+```
 tar -czvf $backupFileName ${toBackup[@]}
-Task 12: Archive and compress all files in the toBackup array into one .tar.gz file.
+```
+Creates a .tar.gz compressed archive with the selected files.
 
-bash
-Copy
-Edit
+📤 Move Backup File
+```
 mv $backupFileName $destDirAbsPath
-Task 13: Move the backup file to the destination directory.
+```
+Transfers the archive to the specified destination directory.
 
-✅ Output Example
-When run correctly:
+⏰ Schedule Daily Backup with Cron
+You can automate this script to run every day using crontab -e:
 
-bash
-Copy
-Edit
-Target Directory: /home/user/docs
-Destination Directory: /home/user/backups
-backup-1718892304.tar.gz
-🕒 Crontab Example
-To run this script daily:
-
-bash
-Copy
-Edit
+```
 0 0 * * * /usr/local/bin/backup.sh /path/to/source /path/to/destination
-To run every 1 minute for testing:
+```
+This runs the script daily at midnight.
 
-bash
-Copy
-Edit
-*/1 * * * * /usr/local/bin/backup.sh /path/to/source /path/to/destination
+📁 Example Directory Structure
+```
+project/
+├── backup.sh
+├── source/
+│   ├── file1.txt
+│   └── file2.log
+└── destination/
+    └── backup-1721025600.tar.gz
+```
+🚀 Usage
+```
+./backup.sh /home/user/data /home/user/backups
+```
+Backs up files modified in the last 24 hours from /home/user/data to /home/user/backups.
